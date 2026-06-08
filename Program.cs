@@ -14,13 +14,26 @@ if (!string.IsNullOrWhiteSpace(port))
 
 // Database: connection string Postgres jaisा ho (cloud/Neon) to Npgsql,
 // warna local SQLite file. Render pe env var "ConnectionStrings__Default" set hoga.
-var connStr = builder.Configuration.GetConnectionString("Default") ?? "Data Source=restaurant.db";
-var isPostgres = connStr.Contains("Host=", StringComparison.OrdinalIgnoreCase)
-                 || connStr.Contains("postgres", StringComparison.OrdinalIgnoreCase);
+var rawConn = builder.Configuration.GetConnectionString("Default") ?? "Data Source=restaurant.db";
+var isPostgres = rawConn.StartsWith("postgres", StringComparison.OrdinalIgnoreCase)
+                 || rawConn.Contains("Host=", StringComparison.OrdinalIgnoreCase);
+
+// Neon/Render "postgresql://user:pass@host/db" URL ko Npgsql format me badlo
+static string ToNpgsql(string conn)
+{
+    if (!conn.StartsWith("postgres://") && !conn.StartsWith("postgresql://")) return conn;
+    var uri = new Uri(conn);
+    var parts = uri.UserInfo.Split(':', 2);
+    var db = uri.AbsolutePath.TrimStart('/');
+    var port = uri.Port > 0 ? uri.Port : 5432;
+    return $"Host={uri.Host};Port={port};Database={db};Username={parts[0]};" +
+           $"Password={Uri.UnescapeDataString(parts[1])};SSL Mode=Require;Trust Server Certificate=true";
+}
+
 builder.Services.AddDbContext<AppDbContext>(opt =>
 {
-    if (isPostgres) opt.UseNpgsql(connStr);
-    else opt.UseSqlite(connStr);
+    if (isPostgres) opt.UseNpgsql(ToNpgsql(rawConn));
+    else opt.UseSqlite(rawConn);
 });
 
 builder.Services.AddControllers().AddJsonOptions(opt =>
