@@ -70,6 +70,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    // One-time schema reset: sirf jab DB_RESET=true env set ho (Render pe set NAHI hai)
+    if (Environment.GetEnvironmentVariable("DB_RESET") == "true")
+        db.Database.EnsureDeleted();
     db.Database.EnsureCreated();
     DbSeeder.Seed(db);
     DbSeeder.SeedUsers(db);

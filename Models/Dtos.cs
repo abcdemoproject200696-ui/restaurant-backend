@@ -61,8 +61,28 @@ public class SignupRequest
 {
     public string Name { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public string Pincode { get; set; } = string.Empty;
+}
+
+// Login: phone + password (match hone par OTP banta hai)
+public class LoginRequest
+{
+    public string Phone { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
+// Admin: customer ko active/inactive
+public class SetActiveRequest
+{
+    public bool IsActive { get; set; }
+}
+
+// Password change (admin kisi ka bhi, user apna)
+public class ChangePasswordRequest
+{
+    public string Password { get; set; } = string.Empty;
 }
 
 public class RequestOtpRequest

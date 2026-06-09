@@ -19,39 +19,56 @@ public class AuthController : ControllerBase
         _otp = otp;
     }
 
-    // POST /api/auth/signup  -> naya user banao (ya phone pehle se ho to update)
+    private static bool ValidPhone(string? p) =>
+        System.Text.RegularExpressions.Regex.IsMatch(p ?? "", @"^\d{10}$");
+
+    // POST /api/auth/signup -> naya user (by-default INACTIVE, role Customer)
     [HttpPost("signup")]
     public async Task<ActionResult<User>> Signup([FromBody] SignupRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Name)) return BadRequest("Name is required.");
-        if (!System.Text.RegularExpressions.Regex.IsMatch(req.Phone ?? "", @"^\d{10}$"))
-            return BadRequest("Valid 10-digit phone is required.");
+        if (!ValidPhone(req.Phone)) return BadRequest("Valid 10-digit phone is required.");
+        if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Length < 4)
+            return BadRequest("Password must be at least 4 characters.");
 
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Phone == req.Phone);
-        if (user is null)
+        var existing = await _db.Users.FirstOrDefaultAsync(u => u.Phone == req.Phone);
+        if (existing is not null)
+            return Conflict("This mobile number is already registered. Please login.");
+
+        var user = new User
         {
-            user = new User { Phone = req.Phone!.Trim(), CreatedAt = DateTime.UtcNow };
-            _db.Users.Add(user);
-        }
-        user.Name = req.Name.Trim();
-        user.Address = (req.Address ?? "").Trim();
-        user.Pincode = (req.Pincode ?? "").Trim();
+            Name = req.Name.Trim(),
+            Phone = req.Phone!.Trim(),
+            Password = req.Password,
+            Address = (req.Address ?? "").Trim(),
+            Pincode = (req.Pincode ?? "").Trim(),
+            IsActive = false,        // admin hi active karega
+            Role = "Customer",
+            CreatedAt = DateTime.UtcNow,
+        };
+        _db.Users.Add(user);
         await _db.SaveChangesAsync();
         return Ok(user);
     }
 
-    // POST /api/auth/request-otp  -> OTP banao aur wapas bhejo (demo: popup me dikhega)
-    [HttpPost("request-otp")]
-    public ActionResult<OtpResponse> RequestOtp([FromBody] RequestOtpRequest req)
+    // POST /api/auth/login -> phone + password check. Sahi+active hone par OTP banao.
+    //   404 = user nahi mila, 401 = galat password, 403 = account inactive
+    [HttpPost("login")]
+    public async Task<ActionResult<OtpResponse>> Login([FromBody] LoginRequest req)
     {
-        if (!System.Text.RegularExpressions.Regex.IsMatch(req.Phone ?? "", @"^\d{10}$"))
-            return BadRequest("Valid 10-digit phone is required.");
+        if (!ValidPhone(req.Phone)) return BadRequest("Valid 10-digit phone is required.");
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Phone == req.Phone);
+        if (user is null) return NotFound("This mobile number is not registered.");
+        if (user.Password != (req.Password ?? "")) return Unauthorized("Incorrect password.");
+        if (!user.IsActive)
+            return StatusCode(403, "Your account is not active yet. Please contact the admin.");
 
         var otp = _otp.Generate(req.Phone!);
         return Ok(new OtpResponse { Otp = otp });
     }
 
-    // POST /api/auth/verify-otp  -> OTP check karo, sahi ho to user wapas
+    // POST /api/auth/verify-otp -> OTP sahi to user wapas (active hi hoga, login ne check kiya)
     [HttpPost("verify-otp")]
     public async Task<ActionResult<User>> VerifyOtp([FromBody] VerifyOtpRequest req)
     {
@@ -60,10 +77,12 @@ public class AuthController : ControllerBase
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Phone == req.Phone);
         if (user is null) return NotFound("User not registered. Please sign up.");
+        if (!user.IsActive)
+            return StatusCode(403, "Your account is not active. Please contact the admin.");
         return Ok(user);
     }
 
-    // GET /api/auth/user?phone=...  -> phone se user dhoondo
+    // GET /api/auth/user?phone=... -> phone se user
     [HttpGet("user")]
     public async Task<ActionResult<User>> GetUser([FromQuery] string phone)
     {
@@ -71,7 +90,7 @@ public class AuthController : ControllerBase
         return user is null ? NotFound() : Ok(user);
     }
 
-    // GET /api/auth/users?search=...  -> sabhi customers (naam ya phone se search)
+    // GET /api/auth/users?search=... -> saare customers (admin ko password bhi dikhta hai)
     [HttpGet("users")]
     public async Task<ActionResult<IEnumerable<User>>> GetUsers([FromQuery] string? search)
     {
@@ -85,7 +104,7 @@ public class AuthController : ControllerBase
         return Ok(users);
     }
 
-    // PUT /api/auth/users/5  -> customer update (admin): name/phone/address
+    // PUT /api/auth/users/5 -> customer update (admin): name/phone/address/pincode
     [HttpPut("users/{id:int}")]
     public async Task<ActionResult<User>> UpdateUser(int id, [FromBody] SignupRequest req)
     {
@@ -93,10 +112,8 @@ public class AuthController : ControllerBase
         if (user is null) return NotFound();
 
         if (string.IsNullOrWhiteSpace(req.Name)) return BadRequest("Name is required.");
-        if (!System.Text.RegularExpressions.Regex.IsMatch(req.Phone ?? "", @"^\d{10}$"))
-            return BadRequest("Valid 10-digit phone is required.");
+        if (!ValidPhone(req.Phone)) return BadRequest("Valid 10-digit phone is required.");
 
-        // Naya phone kisi aur customer ka to nahi?
         var clash = await _db.Users.AnyAsync(u => u.Phone == req.Phone && u.Id != id);
         if (clash) return BadRequest("This phone number is already used by another customer.");
 
@@ -108,12 +125,37 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
-    // DELETE /api/auth/users/5  -> customer delete (admin)
+    // PUT /api/auth/users/5/active -> admin active/inactive
+    [HttpPut("users/{id:int}/active")]
+    public async Task<ActionResult<User>> SetActive(int id, [FromBody] SetActiveRequest req)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user is null) return NotFound();
+        user.IsActive = req.IsActive;
+        await _db.SaveChangesAsync();
+        return Ok(user);
+    }
+
+    // PUT /api/auth/users/5/password -> password change (admin kisi ka bhi, user apna)
+    [HttpPut("users/{id:int}/password")]
+    public async Task<ActionResult<User>> ChangePassword(int id, [FromBody] ChangePasswordRequest req)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user is null) return NotFound();
+        if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Length < 4)
+            return BadRequest("Password must be at least 4 characters.");
+        user.Password = req.Password;
+        await _db.SaveChangesAsync();
+        return Ok(user);
+    }
+
+    // DELETE /api/auth/users/5 -> customer delete (admin)
     [HttpDelete("users/{id:int}")]
     public async Task<IActionResult> DeleteUser(int id)
     {
         var user = await _db.Users.FindAsync(id);
         if (user is null) return NotFound();
+        if (user.Role == "Admin") return BadRequest("Admin account cannot be deleted.");
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();
         return Ok(new { deleted = true, id });

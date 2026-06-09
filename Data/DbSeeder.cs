@@ -46,28 +46,24 @@ public static class DbSeeder
         db.SaveChanges();
     }
 
-    // 5 fake customers daal do (jo pehle se nahi hain unhe, phone se check karke)
+    // Sirf Admin seed hota hai. Customers signup se aayenge (koi fake customer nahi).
     public static void SeedUsers(AppDbContext db)
     {
-        var fakes = new List<User>
+        // ===== ADMIN (login: 9999999999 / admin123) =====
+        if (!db.Users.Any(u => u.Phone == "9999999999"))
         {
-            new() { Name = "Amit Sharma",  Phone = "9811122233", Address = "45 Park Street, Delhi", Pincode = "110001" },
-            new() { Name = "Priya Singh",  Phone = "9822233344", Address = "12 Lake View, Bangalore", Pincode = "560001" },
-            new() { Name = "Rohit Verma",  Phone = "9833344455", Address = "78 Hill Road, Mumbai", Pincode = "400001" },
-            new() { Name = "Sneha Patel",  Phone = "9844455566", Address = "9 Green Avenue, Ahmedabad", Pincode = "380001" },
-            new() { Name = "Vikram Rao",   Phone = "9855566677", Address = "23 MG Road, Pune", Pincode = "411001" },
-        };
-
-        var added = false;
-        foreach (var f in fakes)
-        {
-            if (!db.Users.Any(u => u.Phone == f.Phone))
+            db.Users.Add(new User
             {
-                db.Users.Add(f);
-                added = true;
-            }
+                Name = "Admin",
+                Phone = "9999999999",
+                Password = "admin123",
+                Role = "Admin",
+                IsActive = true,
+                Address = "Sonbhadra Restaurant HQ",
+                Pincode = "000000",
+            });
+            db.SaveChanges();
         }
-        if (added) db.SaveChanges();
     }
 
     // 4 default discounts
