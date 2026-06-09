@@ -19,8 +19,9 @@ public class AuthController : ControllerBase
         _otp = otp;
     }
 
+    // 10 digit, 6-9 se shuru (asli Indian mobile — 12345 jaisा reject)
     private static bool ValidPhone(string? p) =>
-        System.Text.RegularExpressions.Regex.IsMatch(p ?? "", @"^\d{10}$");
+        System.Text.RegularExpressions.Regex.IsMatch(p ?? "", @"^[6-9]\d{9}$");
 
     // POST /api/auth/signup -> naya user (by-default INACTIVE, role Customer)
     [HttpPost("signup")]

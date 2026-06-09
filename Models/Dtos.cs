@@ -12,6 +12,16 @@ public class CreateOrderRequest
     public List<CreateOrderItem> Items { get; set; } = new();
 }
 
+// Menu item add/update ke liye (admin). ImageUrl me base64 data URI bhi aa sakta hai.
+public class MenuItemRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string ImageUrl { get; set; } = string.Empty;
+}
+
 // Discount add/update ke liye
 public class DiscountRequest
 {

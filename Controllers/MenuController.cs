@@ -46,4 +46,56 @@ public class MenuController : ControllerBase
         var item = await _db.MenuItems.FindAsync(id);
         return item is null ? NotFound() : Ok(item);
     }
+
+    // POST /api/menu -> naya item (admin). ImageUrl me base64 data URI ho sakta hai.
+    [HttpPost]
+    public async Task<ActionResult<MenuItem>> Create([FromBody] MenuItemRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Name)) return BadRequest("Name is required.");
+        if (string.IsNullOrWhiteSpace(req.Category)) return BadRequest("Category is required.");
+        if (req.Price <= 0) return BadRequest("Price must be greater than 0.");
+
+        var item = new MenuItem
+        {
+            Name = req.Name.Trim(),
+            Category = req.Category.Trim(),
+            Description = (req.Description ?? "").Trim(),
+            Price = req.Price,
+            ImageUrl = req.ImageUrl ?? "",
+            IsAvailable = true,
+        };
+        _db.MenuItems.Add(item);
+        await _db.SaveChangesAsync();
+        return Ok(item);
+    }
+
+    // PUT /api/menu/5 -> item update (admin) — image bhi update
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<MenuItem>> Update(int id, [FromBody] MenuItemRequest req)
+    {
+        var item = await _db.MenuItems.FindAsync(id);
+        if (item is null) return NotFound();
+        if (string.IsNullOrWhiteSpace(req.Name)) return BadRequest("Name is required.");
+        if (string.IsNullOrWhiteSpace(req.Category)) return BadRequest("Category is required.");
+        if (req.Price <= 0) return BadRequest("Price must be greater than 0.");
+
+        item.Name = req.Name.Trim();
+        item.Category = req.Category.Trim();
+        item.Description = (req.Description ?? "").Trim();
+        item.Price = req.Price;
+        if (!string.IsNullOrWhiteSpace(req.ImageUrl)) item.ImageUrl = req.ImageUrl; // nayi image di to update
+        await _db.SaveChangesAsync();
+        return Ok(item);
+    }
+
+    // DELETE /api/menu/5 -> item delete (admin). Row delete = image bhi DB se gayi.
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var item = await _db.MenuItems.FindAsync(id);
+        if (item is null) return NotFound();
+        _db.MenuItems.Remove(item);
+        await _db.SaveChangesAsync();
+        return Ok(new { deleted = true, id });
+    }
 }
