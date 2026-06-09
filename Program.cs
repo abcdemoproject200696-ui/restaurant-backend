@@ -90,10 +90,14 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
+// Angular UI (wwwroot me built app) serve karo — wahi URL pe app khulega
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseCors(CorsPolicy);
 app.MapControllers();
 
-// Simple health check / welcome
-app.MapGet("/", () => "Resturent-MobileApp-Backend is running. Try /api/menu");
+// SPA routing: jo route API/file na ho, Angular ka index.html bhejo
+app.MapFallbackToFile("index.html");
 
 app.Run();
