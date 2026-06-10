@@ -96,6 +96,12 @@ public class ChangePasswordRequest
     public string Password { get; set; } = string.Empty;
 }
 
+// Admin: role change (Customer <-> DeliveryBoy)
+public class SetRoleRequest
+{
+    public string Role { get; set; } = "Customer";
+}
+
 public class RequestOtpRequest
 {
     public string Phone { get; set; } = string.Empty;

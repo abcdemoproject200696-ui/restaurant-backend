@@ -141,6 +141,18 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
+    // PUT /api/auth/users/5/role -> admin role badle (Customer <-> DeliveryBoy)
+    [HttpPut("users/{id:int}/role")]
+    public async Task<ActionResult<User>> SetRole(int id, [FromBody] SetRoleRequest req)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user is null) return NotFound();
+        if (user.Role == "Admin") return BadRequest("Admin role cannot be changed.");
+        user.Role = req.Role == "DeliveryBoy" ? "DeliveryBoy" : "Customer";
+        await _db.SaveChangesAsync();
+        return Ok(user);
+    }
+
     // PUT /api/auth/users/5/password -> password change (admin kisi ka bhi, user apna)
     [HttpPut("users/{id:int}/password")]
     public async Task<ActionResult<User>> ChangePassword(int id, [FromBody] ChangePasswordRequest req)
