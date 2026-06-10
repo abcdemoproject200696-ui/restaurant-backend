@@ -43,7 +43,7 @@ public class AuthController : ControllerBase
             Password = req.Password,
             Address = (req.Address ?? "").Trim(),
             Pincode = (req.Pincode ?? "").Trim(),
-            IsActive = false,        // admin hi active karega
+            IsActive = true,         // by-default active; admin chahe to inactive kar sakta hai
             Role = "Customer",
             CreatedAt = DateTime.UtcNow,
         };
