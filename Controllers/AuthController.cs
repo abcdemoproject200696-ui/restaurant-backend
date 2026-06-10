@@ -36,6 +36,9 @@ public class AuthController : ControllerBase
         if (existing is not null)
             return Conflict("This mobile number is already registered. Please login.");
 
+        // Role: sirf Customer ya DeliveryBoy (Admin signup se nahi ban sakta)
+        var role = req.Role == "DeliveryBoy" ? "DeliveryBoy" : "Customer";
+
         var user = new User
         {
             Name = req.Name.Trim(),
@@ -43,8 +46,9 @@ public class AuthController : ControllerBase
             Password = req.Password,
             Address = (req.Address ?? "").Trim(),
             Pincode = (req.Pincode ?? "").Trim(),
-            IsActive = true,         // by-default active; admin chahe to inactive kar sakta hai
-            Role = "Customer",
+            // Customer turant active; Delivery Boy inactive (admin activate karega)
+            IsActive = role != "DeliveryBoy",
+            Role = role,
             CreatedAt = DateTime.UtcNow,
         };
         _db.Users.Add(user);

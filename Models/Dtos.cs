@@ -74,6 +74,7 @@ public class SignupRequest
     public string Password { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public string Pincode { get; set; } = string.Empty;
+    public string Role { get; set; } = "Customer"; // "Customer" ya "DeliveryBoy"
 }
 
 // Login: phone + password (match hone par OTP banta hai)
