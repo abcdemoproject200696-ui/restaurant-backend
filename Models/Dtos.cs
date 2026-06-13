@@ -9,6 +9,8 @@ public class CreateOrderRequest
     public string Pincode { get; set; } = string.Empty;
     public string PaymentMethod { get; set; } = "Cash on Delivery";
     public int? DiscountId { get; set; }   // optional: order pe laga discount
+    public double? Latitude { get; set; }  // optional: delivery GPS location
+    public double? Longitude { get; set; }
     public List<CreateOrderItem> Items { get; set; } = new();
 }
 

@@ -77,6 +77,24 @@ using (var scope = app.Services.CreateScope())
     DbSeeder.Seed(db);
     DbSeeder.SeedUsers(db);
     DbSeeder.SeedDiscounts(db);
+
+    // Orders me Latitude/Longitude columns add karo (purana table ho to) — bina data loss
+    try
+    {
+        if (isPostgres)
+        {
+            db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Orders"" ADD COLUMN IF NOT EXISTS ""Latitude"" double precision");
+            db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Orders"" ADD COLUMN IF NOT EXISTS ""Longitude"" double precision");
+        }
+        else
+        {
+            foreach (var col in new[] { "Latitude", "Longitude" })
+            {
+                try { db.Database.ExecuteSqlRaw($"ALTER TABLE Orders ADD COLUMN {col} REAL"); } catch { /* already exists */ }
+            }
+        }
+    }
+    catch { /* ignore */ }
 }
 
 // ===== Middleware =====

@@ -23,6 +23,10 @@ public class Order
     public decimal DiscountAmount { get; set; } // discount me kitna kam hua
     public decimal TotalAmount { get; set; }   // Subtotal + Tax - Discount
 
+    // Delivery location (optional) — customer ne "use my location" diya to exact GPS
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Is order me kaun kaun se items hain

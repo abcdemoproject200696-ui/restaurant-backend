@@ -69,6 +69,8 @@ public class OrdersController : ControllerBase
             Pincode = req.Pincode.Trim(),
             PaymentMethod = string.IsNullOrWhiteSpace(req.PaymentMethod) ? "Cash on Delivery" : req.PaymentMethod.Trim(),
             Status = OrderStatus.Pending,
+            Latitude = req.Latitude,
+            Longitude = req.Longitude,
             CreatedAt = DateTime.UtcNow,
         };
 

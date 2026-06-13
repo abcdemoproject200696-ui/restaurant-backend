@@ -1,1 +1,0 @@
-import{a as r}from"./chunk-YBE6D6VD.js";import{c as o}from"./chunk-VR7JJUMP.js";var n=o("Geolocation",{web:()=>import("./chunk-CUOYGEJO.js").then(e=>new e.GeolocationWeb)});r();var a=o("AppLauncher",{web:()=>import("./chunk-TWBS2OLL.js").then(e=>new e.AppLauncherWeb)});export{n as a,a as b};
