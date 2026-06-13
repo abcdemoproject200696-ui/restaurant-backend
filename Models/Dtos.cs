@@ -102,6 +102,14 @@ public class SetRoleRequest
     public string Role { get; set; } = "Customer";
 }
 
+// Forgot password -> OTP verify + naya password
+public class ResetPasswordRequest
+{
+    public string Phone { get; set; } = string.Empty;
+    public string Otp { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+}
+
 public class RequestOtpRequest
 {
     public string Phone { get; set; } = string.Empty;

@@ -87,6 +87,31 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
+    // POST /api/auth/forgot-otp { phone } -> user registered ho to OTP, warna 404
+    [HttpPost("forgot-otp")]
+    public async Task<ActionResult<OtpResponse>> ForgotOtp([FromBody] RequestOtpRequest req)
+    {
+        if (!ValidPhone(req.Phone)) return BadRequest("Valid 10-digit phone is required.");
+        var exists = await _db.Users.AnyAsync(u => u.Phone == req.Phone);
+        if (!exists) return NotFound("This mobile number is not registered.");
+        var otp = _otp.Generate(req.Phone!);
+        return Ok(new OtpResponse { Otp = otp });
+    }
+
+    // POST /api/auth/reset-password { phone, otp, password } -> OTP verify + naya password
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
+    {
+        if (!_otp.Verify(req.Phone ?? "", req.Otp ?? "")) return BadRequest("Invalid OTP.");
+        if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Length < 4)
+            return BadRequest("Password must be at least 4 characters.");
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Phone == req.Phone);
+        if (user is null) return NotFound("User not found.");
+        user.Password = req.Password;
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true });
+    }
+
     // GET /api/auth/user?phone=... -> phone se user
     [HttpGet("user")]
     public async Task<ActionResult<User>> GetUser([FromQuery] string phone)
