@@ -36,8 +36,8 @@ public class AuthController : ControllerBase
         if (existing is not null)
             return Conflict("This mobile number is already registered. Please login.");
 
-        // Role: sirf Customer ya DeliveryBoy (Admin signup se nahi ban sakta)
-        var role = req.Role == "DeliveryBoy" ? "DeliveryBoy" : "Customer";
+        // Role: sirf Customer / DeliveryBoy / Kitchen (Admin signup se nahi ban sakta)
+        var role = req.Role is "DeliveryBoy" or "Kitchen" ? req.Role : "Customer";
 
         var user = new User
         {
@@ -46,8 +46,8 @@ public class AuthController : ControllerBase
             Password = req.Password,
             Address = (req.Address ?? "").Trim(),
             Pincode = (req.Pincode ?? "").Trim(),
-            // Customer turant active; Delivery Boy inactive (admin activate karega)
-            IsActive = role != "DeliveryBoy",
+            // Customer turant active; Delivery Boy + Kitchen inactive (admin activate karega)
+            IsActive = role == "Customer",
             Role = role,
             CreatedAt = DateTime.UtcNow,
         };
@@ -166,14 +166,14 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
-    // PUT /api/auth/users/5/role -> admin role badle (Customer <-> DeliveryBoy)
+    // PUT /api/auth/users/5/role -> admin role badle (Customer / DeliveryBoy / Kitchen)
     [HttpPut("users/{id:int}/role")]
     public async Task<ActionResult<User>> SetRole(int id, [FromBody] SetRoleRequest req)
     {
         var user = await _db.Users.FindAsync(id);
         if (user is null) return NotFound();
         if (user.Role == "Admin") return BadRequest("Admin role cannot be changed.");
-        user.Role = req.Role == "DeliveryBoy" ? "DeliveryBoy" : "Customer";
+        user.Role = req.Role is "DeliveryBoy" or "Kitchen" or "Customer" ? req.Role : "Customer";
         await _db.SaveChangesAsync();
         return Ok(user);
     }
